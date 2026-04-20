@@ -12,7 +12,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Generate an age identity and create an empty vault",
+	Short: "Create a new vault in the current directory (reuses existing identity if present)",
 	RunE:  runInit,
 }
 
@@ -22,32 +22,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if _, err := os.Stat(idPath); err == nil {
-		return fmt.Errorf("identity already exists at %s — delete it first if you want to reinitialise", idPath)
-	}
-
 	if _, err := os.Stat(vault.VaultFile); err == nil {
-		return fmt.Errorf("%s already exists — delete it first if you want to reinitialise", vault.VaultFile)
+		return fmt.Errorf("%s already exists in this directory — this project is already initialised", vault.VaultFile)
 	}
 
-	id, err := age.GenerateX25519Identity()
-	if err != nil {
-		return fmt.Errorf("generate identity: %w", err)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(idPath), 0700); err != nil {
-		return err
-	}
-	f, err := os.OpenFile(idPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
+	id, identityIsNew, err := ensureIdentity(idPath)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	fmt.Fprintln(f, id)
 
 	pubkey := id.Recipient().String()
 
-	// Bootstrap recipients file and empty vault encrypted to self.
 	if err := vault.SaveRecipients([]string{pubkey}); err != nil {
 		return err
 	}
@@ -55,13 +40,56 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Identity:   %s\n", idPath)
+	if identityIsNew {
+		fmt.Printf("Identity:   %s (new)\n", idPath)
+	} else {
+		fmt.Printf("Identity:   %s (reused)\n", idPath)
+	}
 	fmt.Printf("Public key: %s\n", pubkey)
 	fmt.Printf("Vault:      %s\n", vault.VaultFile)
 	fmt.Println()
 	fmt.Println("Commit to git:      .env.vault (encrypted secrets), .env.vault.recipients (who can decrypt).")
 	fmt.Println("Add to .gitignore:  .env, .env.local, .env.production (never commit plaintext).")
 	return nil
+}
+
+// ensureIdentity returns the user's age identity, creating it if the file does not yet exist.
+// The identity file is always read from disk (never ENVAULT_IDENTITY) because init writes to disk.
+func ensureIdentity(path string) (*age.X25519Identity, bool, error) {
+	if _, err := os.Stat(path); err == nil {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, false, err
+		}
+		defer f.Close()
+		ids, err := age.ParseIdentities(f)
+		if err != nil {
+			return nil, false, fmt.Errorf("%s: %w", path, err)
+		}
+		for _, id := range ids {
+			if x, ok := id.(*age.X25519Identity); ok {
+				return x, false, nil
+			}
+		}
+		return nil, false, fmt.Errorf("%s: no X25519 identity found", path)
+	}
+
+	id, err := age.GenerateX25519Identity()
+	if err != nil {
+		return nil, false, fmt.Errorf("generate identity: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return nil, false, err
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
+	if err != nil {
+		return nil, false, err
+	}
+	defer f.Close()
+	if _, err := fmt.Fprintln(f, id); err != nil {
+		return nil, false, err
+	}
+	return id, true, nil
 }
 
 func identityPath() (string, error) {
