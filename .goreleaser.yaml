@@ -1,0 +1,55 @@
+version: 2
+
+project_name: envault
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - binary: envault
+    ldflags:
+      - -s -w -X github.com/frahet/envault/cmd.Version={{.Version}}
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: linux
+        goarch: arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
+
+brews:
+  - name: envault
+    repository:
+      owner: frahet
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/frahet/envault
+    description: "AI-era .env encryption CLI — never plaintext on disk"
+    license: MIT
+    install: |
+      bin.install "envault"
+    test: |
+      system "#{bin}/envault", "version"
