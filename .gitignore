@@ -1,0 +1,12 @@
+# Binaries
+/envault
+dist/
+
+# Identity file — never commit this
+identity.age
+.env.vault.tmp
+
+# Go
+*.test
+*.out
+coverage.txt
