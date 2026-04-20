@@ -27,5 +27,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(addRecipientCmd)
 	rootCmd.AddCommand(removeRecipientCmd)
+	rootCmd.AddCommand(whoamiCmd)
+	rootCmd.AddCommand(pubkeyCmd)
 	rootCmd.AddCommand(versionCmd)
 }

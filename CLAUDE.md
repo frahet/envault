@@ -21,6 +21,8 @@ cmd/                            -- cobra commands
   run.go                        -- decrypt into memory, syscall.Exec child
   add_recipient.go              -- add age pubkey, rewrap vault
   remove_recipient.go           -- remove age pubkey, rewrap vault
+  whoami.go                     -- print identity source + public key
+  pubkey.go                     -- print public key only (scriptable)
   version.go                    -- print version (set via GoReleaser ldflags)
 internal/identity/identity.go   -- load age identity from file or ENVAULT_IDENTITY env var
 internal/vault/vault.go         -- encrypt/decrypt vault, atomic write
