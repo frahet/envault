@@ -55,12 +55,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Identity:  %s\n", idPath)
+	fmt.Printf("Identity:   %s\n", idPath)
 	fmt.Printf("Public key: %s\n", pubkey)
-	fmt.Printf("Vault:     %s\n", vault.VaultFile)
+	fmt.Printf("Vault:      %s\n", vault.VaultFile)
 	fmt.Println()
-	fmt.Println("Add to .gitignore:  .env.vault is your encrypted secrets. Commit it.")
-	fmt.Println("Commit to git:      .env.vault.recipients lists who can decrypt.")
+	fmt.Println("Commit to git:      .env.vault (encrypted secrets), .env.vault.recipients (who can decrypt).")
+	fmt.Println("Add to .gitignore:  .env, .env.local, .env.production (never commit plaintext).")
 	return nil
 }
 
