@@ -11,7 +11,7 @@ import (
 
 var getCmd = &cobra.Command{
 	Use:   "get KEY",
-	Short: "Decrypt and print a single secret value",
+	Short: "Decrypt and print a single secret value (merged local+global, local wins)",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runGet,
 }
@@ -24,7 +24,7 @@ func runGet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	kv, err := vault.ReadKV(id)
+	kv, _, err := vault.ReadMerged(id)
 	if err != nil {
 		return err
 	}

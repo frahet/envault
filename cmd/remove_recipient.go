@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"filippo.io/age"
@@ -8,6 +9,8 @@ import (
 	"github.com/frahet/envault/internal/vault"
 	"github.com/spf13/cobra"
 )
+
+var removeRecipientGlobalFlag bool
 
 var removeRecipientCmd = &cobra.Command{
 	Use:   "remove-recipient <age-pubkey>",
@@ -21,25 +24,32 @@ After removing a recipient, rotate all secrets (re-set them) to fully revoke acc
 	RunE: runRemoveRecipient,
 }
 
+func init() {
+	removeRecipientCmd.Flags().BoolVar(&removeRecipientGlobalFlag, "global", false, "operate on the global vault (~/.envault/) instead of local")
+}
+
 func runRemoveRecipient(cmd *cobra.Command, args []string) error {
 	targetPubkey := args[0]
+	scope := scopeForWrite(removeRecipientGlobalFlag)
 
 	id, err := identity.Load()
 	if err != nil {
 		return err
 	}
 
-	kv, err := vault.ReadKV(id)
+	kv, err := vault.ReadKV(id, scope)
+	if err != nil {
+		if errors.Is(err, vault.ErrNoVault) {
+			return missingVaultErr(scope)
+		}
+		return err
+	}
+
+	_, pubkeys, err := vault.LoadRecipients(scope)
 	if err != nil {
 		return err
 	}
 
-	_, pubkeys, err := vault.LoadRecipients()
-	if err != nil {
-		return err
-	}
-
-	// Build new recipient list without the target.
 	var remaining []string
 	found := false
 	for _, pk := range pubkeys {
@@ -51,13 +61,13 @@ func runRemoveRecipient(cmd *cobra.Command, args []string) error {
 	}
 
 	if !found {
-		return fmt.Errorf("recipient not found in vault: %s", targetPubkey)
+		return fmt.Errorf("recipient not found in %s vault: %s", scope, targetPubkey)
 	}
 	if len(remaining) == 0 {
-		return fmt.Errorf("cannot remove the only recipient — vault would become unreadable\nTo destroy the vault intentionally: rm %s", vault.VaultFile)
+		vaultPath, _ := vault.VaultPath(scope)
+		return fmt.Errorf("cannot remove the only recipient — vault would become unreadable\nTo destroy the vault intentionally: rm %s", vaultPath)
 	}
 
-	// Parse remaining pubkeys into age.Recipient values.
 	var newRecipients []age.Recipient
 	for _, pk := range remaining {
 		r, err := age.ParseX25519Recipient(pk)
@@ -67,14 +77,14 @@ func runRemoveRecipient(cmd *cobra.Command, args []string) error {
 		newRecipients = append(newRecipients, r)
 	}
 
-	if err := vault.WriteKV(kv, newRecipients); err != nil {
+	if err := vault.WriteKV(kv, newRecipients, scope); err != nil {
 		return err
 	}
-	if err := vault.SaveRecipients(remaining); err != nil {
+	if err := vault.SaveRecipients(remaining, scope); err != nil {
 		return err
 	}
 
-	fmt.Printf("Removed recipient: %s\n", targetPubkey)
+	fmt.Printf("Removed recipient from %s vault: %s\n", scope, targetPubkey)
 	fmt.Printf("Vault now encrypted to %d recipient(s).\n", len(remaining))
 	fmt.Println()
 	fmt.Println("To fully revoke access, rotate all secrets — the removed recipient can still")

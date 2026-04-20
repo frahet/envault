@@ -10,33 +10,48 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var initGlobalFlag bool
+
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Create a new vault in the current directory (reuses existing identity if present)",
+	Short: "Create a new vault (local in cwd by default, or --global for your personal vault)",
 	RunE:  runInit,
 }
 
+func init() {
+	initCmd.Flags().BoolVar(&initGlobalFlag, "global", false, "create the global vault at ~/.envault/")
+}
+
 func runInit(cmd *cobra.Command, args []string) error {
+	scope := vault.ScopeLocal
+	if initGlobalFlag {
+		scope = vault.ScopeGlobal
+	}
+
 	idPath, err := identityPath()
 	if err != nil {
 		return err
 	}
 
-	if _, err := os.Stat(vault.VaultFile); err == nil {
-		return fmt.Errorf("%s already exists in this directory — this project is already initialised", vault.VaultFile)
+	vaultPath, err := vault.VaultPath(scope)
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(vaultPath); err == nil {
+		return fmt.Errorf("%s already exists — %s vault is already initialised", vaultPath, scope)
 	}
 
 	id, identityIsNew, err := ensureIdentity(idPath)
 	if err != nil {
 		return err
 	}
-
 	pubkey := id.Recipient().String()
 
-	if err := vault.SaveRecipients([]string{pubkey}); err != nil {
+	if err := vault.SaveRecipients([]string{pubkey}, scope); err != nil {
 		return err
 	}
-	if err := vault.WriteKV(map[string]string{}, []age.Recipient{id.Recipient()}); err != nil {
+	if err := vault.WriteKV(map[string]string{}, []age.Recipient{id.Recipient()}, scope); err != nil {
 		return err
 	}
 
@@ -46,10 +61,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Identity:   %s (reused)\n", idPath)
 	}
 	fmt.Printf("Public key: %s\n", pubkey)
-	fmt.Printf("Vault:      %s\n", vault.VaultFile)
+	fmt.Printf("Vault:      %s (%s)\n", vaultPath, scope)
 	fmt.Println()
-	fmt.Println("Commit to git:      .env.vault (encrypted secrets), .env.vault.recipients (who can decrypt).")
-	fmt.Println("Add to .gitignore:  .env, .env.local, .env.production (never commit plaintext).")
+	if scope == vault.ScopeLocal {
+		fmt.Println("Commit to git:      .env.vault (encrypted secrets), .env.vault.recipients (who can decrypt).")
+		fmt.Println("Add to .gitignore:  .env, .env.local, .env.production (never commit plaintext).")
+	} else {
+		fmt.Println("Personal vault ready. Add keys with `envault set KEY=VALUE` from anywhere.")
+		fmt.Println("They are visible everywhere (local vaults override on key collision).")
+	}
 	return nil
 }
 

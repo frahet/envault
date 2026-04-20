@@ -11,7 +11,7 @@ import (
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all secret key names (values redacted)",
+	Short: "List all secret key names (values redacted, annotated with source scope)",
 	RunE:  runList,
 }
 
@@ -21,7 +21,7 @@ func runList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	kv, err := vault.ReadKV(id)
+	kv, source, err := vault.ReadMerged(id)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func runList(cmd *cobra.Command, args []string) error {
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		fmt.Printf("%s=<redacted>\n", k)
+		fmt.Printf("%s=<redacted> [%s]\n", k, source[k])
 	}
 	return nil
 }

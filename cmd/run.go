@@ -13,7 +13,7 @@ import (
 
 var runCmd = &cobra.Command{
 	Use:                "run -- <command> [args...]",
-	Short:              "Decrypt vault into memory and exec command with secrets as env vars",
+	Short:              "Decrypt merged vault(s) into memory and exec command with secrets as env vars",
 	DisableFlagParsing: true, // required: Cobra must not consume the -- separator
 	RunE:               runRun,
 }
@@ -40,7 +40,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	kv, err := vault.ReadKV(id)
+	kv, _, err := vault.ReadMerged(id)
 	if err != nil {
 		return err
 	}

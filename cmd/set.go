@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,11 +11,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var setGlobalFlag bool
+
 var setCmd = &cobra.Command{
 	Use:   "set KEY=VALUE",
 	Short: "Encrypt and store a secret (overwrites existing key)",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runSet,
+}
+
+func init() {
+	setCmd.Flags().BoolVar(&setGlobalFlag, "global", false, "write to the global vault (~/.envault/) instead of local")
 }
 
 func runSet(cmd *cobra.Command, args []string) error {
@@ -30,19 +37,24 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	scope := scopeForWrite(setGlobalFlag)
+
 	id, err := identity.Load()
 	if err != nil {
 		return err
 	}
 
-	kv, err := vault.ReadKV(id)
+	kv, err := vault.ReadKV(id, scope)
 	if err != nil {
+		if errors.Is(err, vault.ErrNoVault) {
+			return missingVaultErr(scope)
+		}
 		return err
 	}
 
 	kv[key] = val
 
-	recipients, _, err := vault.LoadRecipients()
+	recipients, _, err := vault.LoadRecipients(scope)
 	if err != nil {
 		return err
 	}
@@ -50,5 +62,5 @@ func runSet(cmd *cobra.Command, args []string) error {
 		recipients = []age.Recipient{id.Recipient()}
 	}
 
-	return vault.WriteKV(kv, recipients)
+	return vault.WriteKV(kv, recipients, scope)
 }
