@@ -13,14 +13,34 @@ import (
 var unsetGlobalFlag bool
 
 var unsetCmd = &cobra.Command{
-	Use:   "unset KEY",
-	Short: "Remove a secret from the vault",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runUnset,
+	Use:               "unset KEY",
+	Short:             "Remove a secret from the vault",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: completeUnsetKeys,
+	RunE:              runUnset,
 }
 
 func init() {
 	unsetCmd.Flags().BoolVar(&unsetGlobalFlag, "global", false, "remove from the global vault (~/.envault/) instead of local")
+}
+
+func completeUnsetKeys(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) > 0 {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	id, err := identity.Load()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	kv, err := vault.ReadKV(id, scopeForWrite(unsetGlobalFlag))
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	keys := make([]string, 0, len(kv))
+	for k := range kv {
+		keys = append(keys, k)
+	}
+	return keys, cobra.ShellCompDirectiveNoFileComp
 }
 
 func runUnset(cmd *cobra.Command, args []string) error {

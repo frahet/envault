@@ -88,6 +88,34 @@ git commit -m "add encrypted secrets"
 | `envault pubkey` | Print public key only (scriptable). |
 | `envault version` | Print version. |
 
+## Shell completion
+
+Tab-complete key names on `envault get` / `envault unset` and recipient pubkeys on `envault remove-recipient`. `--global` is honored, so `envault unset --global <TAB>` completes keys from the global vault.
+
+Cobra ships completion for zsh, bash, and fish. Pick your shell and run the install one-liner once:
+
+**zsh** (most macOS users)
+
+```sh
+envault completion zsh > "${fpath[1]}/_envault"
+```
+
+If you use `compinit` (default oh-my-zsh setup), restart the shell. If your `fpath` writes to a system dir, drop the file under `~/.zfunc` and add `fpath=(~/.zfunc $fpath)` plus `autoload -U compinit && compinit` to `~/.zshrc`.
+
+**bash**
+
+```sh
+envault completion bash | sudo tee /etc/bash_completion.d/envault > /dev/null
+```
+
+Or for current shell only: `source <(envault completion bash)`.
+
+**fish**
+
+```sh
+envault completion fish > ~/.config/fish/completions/envault.fish
+```
+
 ## Sharing secrets with a teammate or another machine
 
 Have them send you their age public key (`envault pubkey` on their side). Then:
