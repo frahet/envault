@@ -20,12 +20,24 @@ var removeRecipientCmd = &cobra.Command{
 Note: this prevents future access but does NOT protect historical git commits.
 Historical .env.vault files remain decryptable by the removed recipient.
 After removing a recipient, rotate all secrets (re-set them) to fully revoke access.`,
-	Args: cobra.ExactArgs(1),
-	RunE: runRemoveRecipient,
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: completeRecipientPubkeys,
+	RunE:              runRemoveRecipient,
 }
 
 func init() {
 	removeRecipientCmd.Flags().BoolVar(&removeRecipientGlobalFlag, "global", false, "operate on the global vault (~/.envault/) instead of local")
+}
+
+func completeRecipientPubkeys(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) > 0 {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	_, pubkeys, err := vault.LoadRecipients(scopeForWrite(removeRecipientGlobalFlag))
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return pubkeys, cobra.ShellCompDirectiveNoFileComp
 }
 
 func runRemoveRecipient(cmd *cobra.Command, args []string) error {
