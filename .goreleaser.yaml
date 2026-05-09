@@ -51,5 +51,6 @@ brews:
     license: MIT
     install: |
       bin.install "envault"
+      generate_completions_from_executable(bin/"envault", "completion")
     test: |
       system "#{bin}/envault", "version"
