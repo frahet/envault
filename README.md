@@ -92,15 +92,17 @@ git commit -m "add encrypted secrets"
 
 Tab-complete key names on `envault get` / `envault unset` and recipient pubkeys on `envault remove-recipient`. `--global` is honored, so `envault unset --global <TAB>` completes keys from the global vault.
 
-Cobra ships completion for zsh, bash, and fish. Pick your shell and run the install one-liner once:
+**Homebrew installs completions automatically** for bash, zsh, and fish — `brew install frahet/tap/envault` is all you need. Restart your shell or run `exec zsh` (or your shell's equivalent) to pick them up.
 
-**zsh** (most macOS users)
+For non-brew installs (Linux tarball, `go install`, source build), drop the completion script into your shell's completion path:
+
+**zsh**
 
 ```sh
 envault completion zsh > "${fpath[1]}/_envault"
 ```
 
-If you use `compinit` (default oh-my-zsh setup), restart the shell. If your `fpath` writes to a system dir, drop the file under `~/.zfunc` and add `fpath=(~/.zfunc $fpath)` plus `autoload -U compinit && compinit` to `~/.zshrc`.
+If your `fpath[1]` is a system dir, use `~/.zfunc/_envault` instead and add `fpath=(~/.zfunc $fpath)` plus `autoload -Uz compinit && compinit` to `~/.zshrc`.
 
 **bash**
 
