@@ -73,6 +73,19 @@ git add .env.vault .env.vault.recipients
 git commit -m "add encrypted secrets"
 ```
 
+### Bootstrapping from the global vault
+
+If the secrets you want to commit already live in your personal global vault, copy them in directly with `export` instead of re-pasting:
+
+```sh
+cd ~/projects/my-app
+envault export STRIPE_KEY DATABASE_URL   # creates ./.env.vault if missing
+envault export --all                     # copy every global key
+envault export --force DATABASE_URL      # overwrite an existing local value
+```
+
+Existing local values are preserved unless `--force` is passed. The global vault is never modified.
+
 ## Commands
 
 | Command | Description |
@@ -82,6 +95,8 @@ git commit -m "add encrypted secrets"
 | `envault get KEY` | Decrypt and print one value (merged read). |
 | `envault list` | List all keys (values redacted, scope annotated). |
 | `envault run -- <cmd>` | Run `<cmd>` with all vault keys injected as env vars. |
+| `envault export KEY [KEY...] [--force]` | Copy keys from global into the local vault (creates one if missing). |
+| `envault export --all [--force]` | Copy every global key into the local vault. |
 | `envault add-recipient <age1...> [--global]` | Re-encrypt vault for an additional pubkey. |
 | `envault remove-recipient <age1...> [--global]` | Remove a recipient. Rotate secrets after! |
 | `envault whoami` | Print identity source + public key. |

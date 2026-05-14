@@ -26,6 +26,7 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(exportCmd)
 	rootCmd.AddCommand(addRecipientCmd)
 	rootCmd.AddCommand(removeRecipientCmd)
 	rootCmd.AddCommand(whoamiCmd)
