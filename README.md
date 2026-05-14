@@ -174,6 +174,10 @@ run: envault run -- pnpm build
 - `remove-recipient` only prevents *future* access. The removed recipient can still decrypt historical `.env.vault` from git history. **Rotate all secrets after removal** to fully revoke.
 - Values containing literal newlines are rejected — base64-encode them first (`printf '%s' "$VALUE" | base64`).
 
+## Adopting envault in an existing project
+
+See [ADOPTION.md](./ADOPTION.md) for the step-by-step migration runbook — moving secrets out of plaintext `.env`, wiring `envault run` into Vercel / GitHub Actions / systemd / Docker, and rolling out across multiple projects without losing keys.
+
 ## License
 
 MIT. Issues and roadmap: [github.com/frahet/envault/issues](https://github.com/frahet/envault/issues).
